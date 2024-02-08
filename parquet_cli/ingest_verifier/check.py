@@ -42,7 +42,7 @@ if OPENSEARCH_ENDPOINT is None or OPENSEARCH_PORT is None or OPENSEARCH_INDEX is
     exit(1)
 
 S3_BUCKET = os.getenv('S3_BUCKET')
-S3_PREFIX = os.getenv('S3_PREFIX', '')
+S3_PREFIX = os.getenv('S3_PREFIX', '').lstrip('/')
 
 if S3_BUCKET is None:
     logger.error('S3_BUCKET parameter not set.')
@@ -143,6 +143,26 @@ if len(uningested_urls) == 0:
     logger.info('No uningested files found')
 else:
     logger.info(f'Found {len(uningested_urls):,} uningested files')
-    with open('result.json', 'w') as fp:
-        json.dump(dict(uningested_urls=uningested_urls), fp, indent=4)
+
+    filename = 'result'
+
+    if os.path.exists(f'{filename}.json'):
+        i = 0
+
+        while os.path.exists(f'{filename}-{i}.json'):
+            i += 1
+
+        filename = f'{filename}-{i}'
+
+    with open(f'{filename}.json', 'w') as fp:
+        json.dump(
+            dict(
+                s3_url=f's3://{S3_BUCKET}/{S3_PREFIX}',
+                total_checked=total_checked,
+                total_uningested=len(uningested_urls),
+                uningested_urls=uningested_urls
+            ),
+            fp,
+            indent=4
+        )
 
